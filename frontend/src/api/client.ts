@@ -66,15 +66,10 @@ export const api = {
     request<SpinResult>(`/api/wheels/${id}/spin`, { method: 'POST' }),
 
   // Options
-  createOption: (
-    wheelId: number,
-    data: { label: string; color?: string; weight?: number },
-  ) =>
+  createOption: (wheelId: number, data: { label: string; color?: string }) =>
     request<Option>(`/api/wheels/${wheelId}/options`, { method: 'POST', ...body(data) }),
-  updateOption: (
-    id: number,
-    data: { label?: string; color?: string; weight?: number; position?: number },
-  ) => request<Option>(`/api/options/${id}`, { method: 'PATCH', ...body(data) }),
+  updateOption: (id: number, data: { label?: string; color?: string }) =>
+    request<Option>(`/api/options/${id}`, { method: 'PATCH', ...body(data) }),
   deleteOption: (id: number) =>
     request<{ id: number }>(`/api/options/${id}`, { method: 'DELETE' }),
 

@@ -70,23 +70,6 @@ export function optionalInt(
   return value;
 }
 
-/** Optional positive number (weight). Returns undefined when absent. */
-export function optionalNumber(
-  body: Body,
-  field: string,
-  { min, max }: { min: number; max: number },
-): number | undefined {
-  const value = body[field];
-  if (value === undefined || value === null) return undefined;
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    throw ApiError.badRequest(`Field "${field}" must be a number`);
-  }
-  if (value < min || value > max) {
-    throw ApiError.badRequest(`Field "${field}" must be between ${min} and ${max}`);
-  }
-  return value;
-}
-
 /** Parse and validate a numeric path/query id. */
 export function parseId(raw: string | undefined, label = 'id'): number {
   const parsed = Number.parseInt(raw ?? '', 10);

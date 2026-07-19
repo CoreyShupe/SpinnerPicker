@@ -22,8 +22,6 @@ CREATE TABLE IF NOT EXISTS options (
   label       TEXT    NOT NULL,
   -- Hex color used for this slice on the wheel.
   color       TEXT    NOT NULL,
-  -- Relative selection weight (>0). Larger = more likely.
-  weight      REAL    NOT NULL DEFAULT 1 CHECK (weight > 0),
   -- Display/order position within the wheel.
   position    INTEGER NOT NULL DEFAULT 0,
   created_at  TEXT    NOT NULL,

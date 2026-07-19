@@ -94,7 +94,7 @@ the built output.
   field type recurs, add a helper here rather than inlining checks.
 
 ### Selection logic
-- The no-repeat weighted-random algorithm lives in `lib/picker.ts` and is
+- The no-repeat uniform-random algorithm lives in `lib/picker.ts` and is
   **pure** (RNG is injectable). Keep it free of DB/HTTP concerns so it stays
   testable. Persistence + transaction wrapping belong in `services/wheelService.ts`.
 
@@ -120,9 +120,9 @@ the built output.
 ## Data model
 
 - `wheels` (id, name, no_repeat_window, **track_stats**, timestamps)
-- `options` (id, wheel_id→wheels, label, color, weight, position, timestamps)
+- `options` (id, wheel_id→wheels, label, color, position, timestamps)
 - `history` (id, wheel_id→wheels, option_id→options **nullable**, option_label
-  snapshot, **stats_committed**, created_at)
+  snapshot, created_at)
 - `users` (id, wheel_id→wheels, name, created_at) — **UNIQUE(wheel_id, name)**
 - `round_stats` (id, history_id→history, user_id→users, value) —
   **UNIQUE(history_id, user_id)**
@@ -143,12 +143,10 @@ new column; add new tables to `schema.sql`.
   numeric `value` per user in `round_stats`. A **missing** `round_stats` row =
   "no value" and renders blank — this is deliberately distinct from `0`, so
   clearing a cell **deletes** the row rather than storing `0`.
-- The **current/editable round** is the wheel's latest spin while
-  `stats_committed = 0`. Only the latest round can be edited (enforced in
-  `statsService.requireEditableRound` → 409 otherwise).
-- **Commit** sets `stats_committed = 1` (locks the round into the catalog).
-  **Rollback** clears it back to editable — only allowed on the latest round.
-  Spinning again **auto-commits** the previous round (see `spinWheel`).
+- The **current/editable round** is the wheel's latest spin. Only the latest
+  round can be edited (enforced in `statsService.requireEditableRound` → 409
+  otherwise); spinning again makes a newer round the latest, which implicitly
+  locks the previous one. There is no explicit commit step.
 - All stat mutations funnel through `services/statsService.ts` and **return the
   full rebuilt `StatsCatalog`**, so the client replaces state in one shot instead
   of refetching. `getCatalog` assembles roster + rounds (newest first, with

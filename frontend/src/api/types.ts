@@ -41,7 +41,6 @@ export interface Option {
   wheelId: number;
   label: string;
   color: string;
-  weight: number;
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -62,5 +61,4 @@ export interface HistoryEntry {
 export interface SpinResult {
   option: Option;
   optionIndex: number;
-  history: HistoryEntry;
 }

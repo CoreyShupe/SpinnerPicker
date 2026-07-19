@@ -19,7 +19,7 @@ export const db = new Database(config.databasePath);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-/** Apply the schema (idempotent), run additive migrations, seed on first run. */
+/** Apply the schema (idempotent) and run additive migrations. */
 export function initializeDatabase(): void {
   const schema = readFileSync(resolve(here, 'schema.sql'), 'utf8');
   db.exec(schema);

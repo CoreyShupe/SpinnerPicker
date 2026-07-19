@@ -1,5 +1,5 @@
 /**
- * Core selection algorithm: weighted random choice that avoids repeating any
+ * Core selection algorithm: uniform random choice that avoids repeating any
  * option that was picked within the wheel's "no-repeat window".
  *
  * Rules:
@@ -8,7 +8,7 @@
  *    of options), we shrink the effective window to `options.length - 1` so at
  *    least one option is always eligible. This keeps single-option wheels and
  *    aggressive windows functional instead of throwing.
- *  - Selection among the eligible candidates is weighted by `option.weight`.
+ *  - Selection among the eligible candidates is uniform.
  *
  * This module is pure and deterministic given an injected `random` function,
  * which keeps it unit-testable and decoupled from persistence.
@@ -16,7 +16,6 @@
 
 export interface PickableOption {
   id: number;
-  weight: number;
 }
 
 export interface PickInput<T extends PickableOption> {
@@ -48,22 +47,5 @@ export function pickOption<T extends PickableOption>(input: PickInput<T>): T {
   // Defensive fallback: should not happen given the clamp above.
   const pool = candidates.length > 0 ? candidates : options;
 
-  return weightedChoice(pool, random);
-}
-
-function weightedChoice<T extends PickableOption>(pool: T[], random: () => number): T {
-  const totalWeight = pool.reduce((sum, o) => sum + Math.max(o.weight, 0), 0);
-
-  // If all weights are zero/invalid, fall back to uniform choice.
-  if (totalWeight <= 0) {
-    return pool[Math.floor(random() * pool.length)];
-  }
-
-  let threshold = random() * totalWeight;
-  for (const option of pool) {
-    threshold -= Math.max(option.weight, 0);
-    if (threshold < 0) return option;
-  }
-  // Floating-point safety net.
-  return pool[pool.length - 1];
+  return pool[Math.floor(random() * pool.length)];
 }

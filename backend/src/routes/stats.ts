@@ -25,7 +25,7 @@ statsRouter.put('/rounds/:historyId/stats', async (c) => {
   const historyId = parseId(c.req.param('historyId'), 'round id');
   const body = asObject(await c.req.json().catch(() => null));
   const userId = parseId(String(body.userId ?? ''), 'user id');
-  // Explicit null clears; a number sets. `optionalNumber` returns undefined for
+  // Explicit null clears; a number sets. `optionalInt` returns undefined for
   // both absent and null, so distinguish null ourselves.
   const value =
     body.value === null

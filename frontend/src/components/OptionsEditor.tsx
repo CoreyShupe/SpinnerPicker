@@ -18,8 +18,8 @@ interface OptionsEditorProps {
   /** Option ids currently blocked by the no-repeat window (shown crossed out). */
   excludedIds: Set<number>;
   onToggleCollapse: () => void;
-  onAdd: (data: { label: string; color: string; weight: number }) => void;
-  onUpdate: (id: number, patch: Partial<Pick<Option, 'label' | 'color' | 'weight'>>) => void;
+  onAdd: (data: { label: string; color: string }) => void;
+  onUpdate: (id: number, patch: Partial<Pick<Option, 'label' | 'color'>>) => void;
   onDelete: (id: number) => void;
 }
 
@@ -44,7 +44,7 @@ export function OptionsEditor({
   const submit = () => {
     const trimmed = label.trim();
     if (!trimmed) return;
-    onAdd({ label: trimmed, color, weight: 1 });
+    onAdd({ label: trimmed, color });
     setLabel('');
     setColorOverride(null); // fall back to the next auto-suggested color
   };
@@ -92,23 +92,6 @@ export function OptionsEditor({
                       else e.target.value = opt.label;
                     }}
                   />
-                  <label className="weight-field" title="Selection weight (whole number)">
-                    <span>×</span>
-                    <input
-                      type="number"
-                      className="no-spin"
-                      min={1}
-                      step={1}
-                      inputMode="numeric"
-                      defaultValue={opt.weight}
-                      disabled={disabled}
-                      onBlur={(e) => {
-                        const next = Math.round(Number(e.target.value));
-                        if (next >= 1 && next !== opt.weight) onUpdate(opt.id, { weight: next });
-                        else e.target.value = String(opt.weight);
-                      }}
-                    />
-                  </label>
                   <button
                     className="icon-btn danger"
                     disabled={disabled}

@@ -4,7 +4,7 @@ import { pickOption } from '../lib/picker.js';
 import { historyRepo } from '../repositories/history.js';
 import { optionsRepo } from '../repositories/options.js';
 import { wheelsRepo } from '../repositories/wheels.js';
-import type { HistoryEntry, Option, WheelWithOptions } from '../types.js';
+import type { Option, WheelWithOptions } from '../types.js';
 
 /**
  * Composed use-cases that span multiple repositories. Routes call these so the
@@ -38,7 +38,6 @@ export interface SpinResult {
   option: Option;
   /** Index of the chosen option within the wheel's ordered options. */
   optionIndex: number;
-  history: HistoryEntry;
 }
 
 /**
@@ -63,13 +62,14 @@ export function spinWheel(wheelId: number): SpinResult {
     });
 
     const optionIndex = options.findIndex((o) => o.id === chosen.id);
-    const history = historyRepo.create({
+    // Record the pick in history (the current round for stats wheels).
+    historyRepo.create({
       wheelId,
       optionId: chosen.id,
       optionLabel: chosen.label,
     });
 
-    return { option: chosen, optionIndex, history };
+    return { option: chosen, optionIndex };
   });
 
   return run();

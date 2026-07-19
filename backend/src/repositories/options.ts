@@ -8,7 +8,6 @@ interface OptionRow {
   wheel_id: number;
   label: string;
   color: string;
-  weight: number;
   position: number;
   created_at: string;
   updated_at: string;
@@ -20,7 +19,6 @@ function mapRow(row: OptionRow): Option {
     wheelId: row.wheel_id,
     label: row.label,
     color: row.color,
-    weight: row.weight,
     position: row.position,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -42,12 +40,7 @@ export const optionsRepo = {
     return row ? mapRow(row) : undefined;
   },
 
-  create(input: {
-    wheelId: number;
-    label: string;
-    color: string;
-    weight: number;
-  }): Option {
+  create(input: { wheelId: number; label: string; color: string }): Option {
     const ts = now();
     // New options append to the end of the current ordering.
     const next = db
@@ -55,28 +48,26 @@ export const optionsRepo = {
       .get(input.wheelId) as { pos: number };
     const info = db
       .prepare(
-        `INSERT INTO options (wheel_id, label, color, weight, position, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO options (wheel_id, label, color, position, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
       )
-      .run(input.wheelId, input.label, input.color, input.weight, next.pos, ts, ts);
+      .run(input.wheelId, input.label, input.color, next.pos, ts, ts);
     return this.findById(Number(info.lastInsertRowid))!;
   },
 
   update(
     id: number,
-    patch: { label?: string; color?: string; weight?: number; position?: number },
+    patch: { label?: string; color?: string },
   ): Option | undefined {
     const existing = this.findById(id);
     if (!existing) return undefined;
 
     const label = patch.label ?? existing.label;
     const color = patch.color ?? existing.color;
-    const weight = patch.weight ?? existing.weight;
-    const position = patch.position ?? existing.position;
     db.prepare(
-      `UPDATE options SET label = ?, color = ?, weight = ?, position = ?, updated_at = ?
+      `UPDATE options SET label = ?, color = ?, updated_at = ?
        WHERE id = ?`,
-    ).run(label, color, weight, position, now(), id);
+    ).run(label, color, now(), id);
     return this.findById(id);
   },
 

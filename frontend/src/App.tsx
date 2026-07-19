@@ -230,7 +230,7 @@ export default function App() {
   };
 
   // ---- Option CRUD --------------------------------------------------------
-  const addOption = (data: { label: string; color: string; weight: number }) =>
+  const addOption = (data: { label: string; color: string }) =>
     selected &&
     run(async () => {
       await api.createOption(selected.id, data);
@@ -239,7 +239,7 @@ export default function App() {
 
   const updateOption = (
     id: number,
-    patch: Partial<Pick<Option, 'label' | 'color' | 'weight'>>,
+    patch: Partial<Pick<Option, 'label' | 'color'>>,
   ) =>
     run(async () => {
       await api.updateOption(id, patch);
