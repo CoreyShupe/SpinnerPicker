@@ -8,7 +8,6 @@ interface HistoryRow {
   wheel_id: number;
   option_id: number | null;
   option_label: string;
-  stats_committed: number;
   created_at: string;
 }
 
@@ -18,7 +17,6 @@ function mapRow(row: HistoryRow): HistoryEntry {
     wheelId: row.wheel_id,
     optionId: row.option_id,
     optionLabel: row.option_label,
-    statsCommitted: row.stats_committed === 1,
     createdAt: row.created_at,
   };
 }
@@ -75,14 +73,6 @@ export const historyRepo = {
       )
       .get(wheelId) as HistoryRow | undefined;
     return row ? mapRow(row) : undefined;
-  },
-
-  /** Set the committed flag on a spin's round. Returns false if not found. */
-  setCommitted(id: number, committed: boolean): boolean {
-    const info = db
-      .prepare('UPDATE history SET stats_committed = ? WHERE id = ?')
-      .run(committed ? 1 : 0, id);
-    return info.changes > 0;
   },
 
   delete(id: number): boolean {

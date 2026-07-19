@@ -23,7 +23,7 @@ app.use(
       if (config.corsOrigins.includes('*')) return origin ?? '*';
       return config.corsOrigins.includes(origin) ? origin : null;
     },
-    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   }),
 );
 

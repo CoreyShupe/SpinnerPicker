@@ -7,8 +7,9 @@ import { requireStatsWheel } from './wheelService.js';
 
 /**
  * Use-cases for the per-user stats feature. All stat mutations funnel through
- * here so the "only the latest round is editable" and commit/rollback rules live
- * in one place rather than being scattered across routes.
+ * here so the "only the latest round is editable" rule lives in one place rather
+ * than being scattered across routes. Spinning again makes a new latest round,
+ * which implicitly locks the previous one (no explicit commit step).
  */
 
 /** Build the full stats catalog for a wheel: roster, rounds, all-time totals. */
@@ -33,7 +34,6 @@ export function getCatalog(wheelId: number): StatsCatalog {
     historyId: spin.id,
     optionId: spin.optionId,
     optionLabel: spin.optionLabel,
-    committed: spin.statsCommitted,
     isLatest: latest?.id === spin.id,
     createdAt: spin.createdAt,
     values: byRound.get(spin.id) ?? {},
@@ -48,8 +48,8 @@ function requireEditableRound(historyId: number) {
   if (!round) throw ApiError.notFound(`Round ${historyId} not found`);
   requireStatsWheel(round.wheelId);
 
-  // Only the most recent spin of the wheel can be edited. Older rounds are
-  // locked; to change one, roll back is not offered (it isn't the latest).
+  // Only the most recent spin of the wheel can be edited; spinning again locks
+  // the prior round by making a newer one the latest.
   const latest = historyRepo.latestForWheel(round.wheelId);
   if (latest?.id !== round.id) {
     throw ApiError.conflict('Only the latest round can be edited');
@@ -57,10 +57,7 @@ function requireEditableRound(historyId: number) {
   return round;
 }
 
-/**
- * Set (or clear, when value is null) a user's value for the latest round.
- * Editing a committed latest round implicitly reopens it for further edits.
- */
+/** Set (or clear, when value is null) a user's value for the latest round. */
 export function editCell(historyId: number, userId: number, value: number | null): StatsCatalog {
   const round = requireEditableRound(historyId);
 
@@ -74,19 +71,5 @@ export function editCell(historyId: number, userId: number, value: number | null
   } else {
     roundStatsRepo.upsert(historyId, userId, value);
   }
-  return getCatalog(round.wheelId);
-}
-
-/** Commit the latest round so its running totals are locked into the catalog. */
-export function commitRound(historyId: number): StatsCatalog {
-  const round = requireEditableRound(historyId);
-  historyRepo.setCommitted(round.id, true);
-  return getCatalog(round.wheelId);
-}
-
-/** Roll back the latest round to editable. Only the latest round qualifies. */
-export function rollbackRound(historyId: number): StatsCatalog {
-  const round = requireEditableRound(historyId);
-  historyRepo.setCommitted(round.id, false);
   return getCatalog(round.wheelId);
 }

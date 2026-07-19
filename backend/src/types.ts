@@ -26,8 +26,6 @@ export interface HistoryEntry {
   wheelId: number;
   optionId: number | null;
   optionLabel: string;
-  /** Stats-wheel only: whether this spin's round is committed to the catalog. */
-  statsCommitted: boolean;
   createdAt: string;
 }
 
@@ -54,8 +52,7 @@ export interface RoundRow {
   /** Identity of the option this spin landed on; null if that option was deleted. */
   optionId: number | null;
   optionLabel: string;
-  committed: boolean;
-  /** True for the most recent spin of the wheel (the editable / rollback-able one). */
+  /** True for the most recent spin of the wheel — the only editable round. */
   isLatest: boolean;
   createdAt: string;
   values: Record<number, number>;

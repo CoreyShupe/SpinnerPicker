@@ -38,10 +38,6 @@ CREATE TABLE IF NOT EXISTS history (
   -- Nullable so history survives option deletion; label is snapshotted.
   option_id     INTEGER REFERENCES options(id) ON DELETE SET NULL,
   option_label  TEXT    NOT NULL,
-  -- For stats wheels: has this spin's round been committed to the catalog?
-  -- The latest uncommitted spin is the editable "current round". Ignored by
-  -- non-stats wheels (stays 0).
-  stats_committed INTEGER NOT NULL DEFAULT 0 CHECK (stats_committed IN (0, 1)),
   created_at    TEXT    NOT NULL
 );
 

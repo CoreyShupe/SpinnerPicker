@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { ok } from '../lib/errors.js';
 import { asObject, optionalInt, parseId } from '../lib/validation.js';
-import { commitRound, editCell, getCatalog, rollbackRound } from '../services/statsService.js';
+import { editCell, getCatalog } from '../services/statsService.js';
 
 /**
  * Routes for the stats catalog and rounds.
@@ -9,8 +9,6 @@ import { commitRound, editCell, getCatalog, rollbackRound } from '../services/st
  * Mounted at /api so paths are:
  *   GET   /api/wheels/:wheelId/stats            → full catalog (roster, rounds, totals)
  *   PUT   /api/rounds/:historyId/stats          → set/clear a user's value (latest round only)
- *   POST  /api/rounds/:historyId/commit         → commit the latest round
- *   POST  /api/rounds/:historyId/rollback       → reopen the latest committed round
  */
 export const statsRouter = new Hono();
 
@@ -34,16 +32,4 @@ statsRouter.put('/rounds/:historyId/stats', async (c) => {
       ? null
       : optionalInt(body, 'value', { min: -MAX_VALUE, max: MAX_VALUE }) ?? 0;
   return ok(c, editCell(historyId, userId, value));
-});
-
-// Commit the latest round into the catalog.
-statsRouter.post('/rounds/:historyId/commit', (c) => {
-  const historyId = parseId(c.req.param('historyId'), 'round id');
-  return ok(c, commitRound(historyId));
-});
-
-// Reopen the latest committed round for editing.
-statsRouter.post('/rounds/:historyId/rollback', (c) => {
-  const historyId = parseId(c.req.param('historyId'), 'round id');
-  return ok(c, rollbackRound(historyId));
 });

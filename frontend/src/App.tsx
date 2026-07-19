@@ -8,6 +8,7 @@ import type {
   StatsCatalog,
   WheelWithOptions,
 } from './api/types';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { HistoryPanel } from './components/HistoryPanel';
 import { OptionsEditor } from './components/OptionsEditor';
 import { StatsPanel } from './components/StatsPanel';
@@ -30,6 +31,14 @@ export default function App() {
   const [picksSmall, setPicksSmall] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sideCollapsed, setSideCollapsed] = useState(false);
+
+  // Pending confirmation for a permanent, destructive action (null = none).
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   /**
    * Toggle the options panel. Opening shrinks the picks card first, then expands
@@ -190,13 +199,21 @@ export default function App() {
       await loadWheels();
     });
 
-  const deleteWheel = (id: number) =>
-    run(async () => {
-      await api.deleteWheel(id);
-      const data = await api.listWheels();
-      setWheels(data);
-      setSelectedId(data[0]?.id ?? null);
+  const deleteWheel = (id: number) => {
+    const wheel = wheels.find((w) => w.id === id);
+    setConfirmState({
+      title: 'Delete wheel',
+      message: `Delete “${wheel?.name ?? 'this wheel'}” and all of its options, picks, and stats? This can’t be undone.`,
+      confirmLabel: 'Delete wheel',
+      onConfirm: () =>
+        run(async () => {
+          await api.deleteWheel(id);
+          const data = await api.listWheels();
+          setWheels(data);
+          setSelectedId(data[0]?.id ?? null);
+        }),
     });
+  };
 
   // ---- Option CRUD --------------------------------------------------------
   const addOption = (data: { label: string; color: string; weight: number }) =>
@@ -215,27 +232,53 @@ export default function App() {
       await loadWheels();
     });
 
-  const deleteOption = (id: number) =>
-    run(async () => {
-      await api.deleteOption(id);
-      await loadWheels();
+  const deleteOption = (id: number) => {
+    const option = selected?.options.find((o) => o.id === id);
+    setConfirmState({
+      title: 'Delete option',
+      message: `Delete “${option?.label ?? 'this option'}” from the wheel?`,
+      confirmLabel: 'Delete',
+      onConfirm: () =>
+        run(async () => {
+          await api.deleteOption(id);
+          await loadWheels();
+        }),
     });
+  };
 
   // ---- History CRUD -------------------------------------------------------
   // Deleting picks cascades to their stats, so refresh the scoreboard too.
-  const deleteHistory = (id: number) =>
-    selected &&
-    run(async () => {
-      await api.deleteHistory(id);
-      await refreshSidePanel(selected);
+  const deleteHistory = (id: number) => {
+    if (!selected) return;
+    const wheel = selected;
+    setConfirmState({
+      title: 'Delete pick',
+      message: 'Delete this pick from history? Any stats recorded for it are removed too.',
+      confirmLabel: 'Delete',
+      onConfirm: () =>
+        run(async () => {
+          await api.deleteHistory(id);
+          await refreshSidePanel(wheel);
+        }),
     });
+  };
 
-  const clearHistory = () =>
-    selected &&
-    run(async () => {
-      await api.clearHistory(selected.id);
-      await refreshSidePanel(selected);
+  const clearHistory = () => {
+    if (!selected) return;
+    const wheel = selected;
+    setConfirmState({
+      title: 'Clear picks',
+      message: `Clear all ${history.length} pick${history.length === 1 ? '' : 's'}${
+        wheel.trackStats ? ' and their recorded stats' : ''
+      }? This can’t be undone.`,
+      confirmLabel: 'Clear all',
+      onConfirm: () =>
+        run(async () => {
+          await api.clearHistory(wheel.id);
+          await refreshSidePanel(wheel);
+        }),
     });
+  };
 
   // ---- Users & stats ------------------------------------------------------
   const addUser = (name: string) =>
@@ -245,25 +288,28 @@ export default function App() {
       await loadCatalog(selectedId);
     });
 
-  const deleteUser = (id: number) =>
-    selectedId != null &&
-    run(async () => {
-      await api.deleteUser(id);
-      await loadCatalog(selectedId);
+  const deleteUser = (id: number) => {
+    if (selectedId == null) return;
+    const wheelId = selectedId;
+    const user = catalog?.users.find((u) => u.id === id);
+    setConfirmState({
+      title: 'Delete player',
+      message: `Delete “${user?.name ?? 'this player'}” and all of their recorded stats?`,
+      confirmLabel: 'Delete',
+      onConfirm: () =>
+        run(async () => {
+          await api.deleteUser(id);
+          await loadCatalog(wheelId);
+        }),
     });
+  };
 
-  // These endpoints return the fresh catalog, so we set it directly.
+  // This endpoint returns the fresh catalog, so we set it directly.
   const setStat = (historyId: number, userId: number, value: number | null) =>
     run(async () => {
       const next = await api.setStat(historyId, userId, value);
       setCatalog(next);
     });
-
-  const commitRound = (historyId: number) =>
-    run(async () => setCatalog(await api.commitRound(historyId)));
-
-  const rollbackRound = (historyId: number) =>
-    run(async () => setCatalog(await api.rollbackRound(historyId)));
 
   const busy = spinning;
   const showScoreboard = !!(selected?.trackStats && catalog);
@@ -304,8 +350,6 @@ export default function App() {
             onAddUser={addUser}
             onDeleteUser={deleteUser}
             onSetStat={setStat}
-            onCommit={commitRound}
-            onRollback={rollbackRound}
           />
         </div>
       )}
@@ -407,6 +451,19 @@ export default function App() {
             />
           </div>
         ))}
+
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          onConfirm={() => {
+            confirmState.onConfirm();
+            setConfirmState(null);
+          }}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
     </div>
   );
 }

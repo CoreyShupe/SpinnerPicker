@@ -39,7 +39,6 @@ export function now(): string {
  */
 function runMigrations(): void {
   ensureColumn('wheels', 'track_stats', 'INTEGER NOT NULL DEFAULT 0');
-  ensureColumn('history', 'stats_committed', 'INTEGER NOT NULL DEFAULT 0');
 }
 
 function ensureColumn(table: string, column: string, definition: string): void {

@@ -99,8 +99,4 @@ export const api = {
       method: 'PUT',
       ...body({ userId, value }),
     }),
-  commitRound: (historyId: number) =>
-    request<StatsCatalog>(`/api/rounds/${historyId}/commit`, { method: 'POST' }),
-  rollbackRound: (historyId: number) =>
-    request<StatsCatalog>(`/api/rounds/${historyId}/rollback`, { method: 'POST' }),
 };

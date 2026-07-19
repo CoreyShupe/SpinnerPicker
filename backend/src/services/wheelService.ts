@@ -62,15 +62,6 @@ export function spinWheel(wheelId: number): SpinResult {
       window: wheel.noRepeatWindow,
     });
 
-    // For stats wheels, spinning again auto-commits the previous round so its
-    // running totals are locked into the catalog before the new round begins.
-    if (wheel.trackStats) {
-      const previous = historyRepo.latestForWheel(wheelId);
-      if (previous && !previous.statsCommitted) {
-        historyRepo.setCommitted(previous.id, true);
-      }
-    }
-
     const optionIndex = options.findIndex((o) => o.id === chosen.id);
     const history = historyRepo.create({
       wheelId,

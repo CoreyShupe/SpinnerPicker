@@ -22,7 +22,7 @@ export interface RoundRow {
   /** Identity of the option this spin landed on; null if that option was deleted. */
   optionId: number | null;
   optionLabel: string;
-  committed: boolean;
+  /** True for the most recent spin of the wheel — the only editable round. */
   isLatest: boolean;
   createdAt: string;
   /** userId -> value; a user absent here has no value for this round (blank). */

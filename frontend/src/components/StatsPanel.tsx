@@ -4,9 +4,8 @@ import type { RoundRow, StatsCatalog, User } from '../api/types';
 /**
  * Per-wheel scoreboard for stats wheels. It is scoped to the *current option* —
  * the option the wheel most recently landed on — and shows only that option's
- * stat history: one editable row per spin of that option, a value per player.
- * The latest uncommitted spin is the editable "current" row; committed rounds
- * are locked.
+ * stat history: a value per player per spin. The most recent spin is the
+ * editable "current" row; spinning again locks it and opens a new one.
  *
  * The footer "Total" sums each player's values across ALL spins of the wheel
  * (every option), so it deliberately does NOT equal the columns above it, which
@@ -24,8 +23,6 @@ interface StatsPanelProps {
   onAddUser: (name: string) => void;
   onDeleteUser: (id: number) => void;
   onSetStat: (historyId: number, userId: number, value: number | null) => void;
-  onCommit: (historyId: number) => void;
-  onRollback: (historyId: number) => void;
 }
 
 export function StatsPanel({
@@ -34,8 +31,6 @@ export function StatsPanel({
   onAddUser,
   onDeleteUser,
   onSetStat,
-  onCommit,
-  onRollback,
 }: StatsPanelProps) {
   const { users, rounds, totals } = catalog;
 
@@ -49,11 +44,9 @@ export function StatsPanel({
         .filter((r) =>
           currentOptionId != null ? r.optionId === currentOptionId : r.optionLabel === currentLabel,
         )
-        // Hide spins with no recorded stats at all. The current editable round
+        // Hide spins with no recorded stats at all. The current (latest) round
         // is kept regardless so values can still be entered for it.
-        .filter(
-          (r) => Object.keys(r.values).length > 0 || (r.isLatest && !r.committed),
-        )
+        .filter((r) => Object.keys(r.values).length > 0 || r.isLatest)
     : [];
   const visibleRounds = optionRounds.slice(0, MAX_LINES);
   const hiddenCount = optionRounds.length - visibleRounds.length;
@@ -97,14 +90,12 @@ export function StatsPanel({
                     users={users}
                     disabled={disabled}
                     onSetStat={onSetStat}
-                    onCommit={onCommit}
-                    onRollback={onRollback}
                   />
                 ))}
               </tbody>
               <tfoot>
                 <tr className="totals-row">
-                  <td>Total · all spins</td>
+                  <td>Total · All Rounds</td>
                   {users.map((u) => (
                     <td key={u.id} className="stat-cell">
                       {formatNumber(totals[u.id] ?? 0)}
@@ -183,18 +174,14 @@ function RoundLine({
   users,
   disabled,
   onSetStat,
-  onCommit,
-  onRollback,
 }: {
   round: RoundRow;
   users: User[];
   disabled: boolean;
   onSetStat: (historyId: number, userId: number, value: number | null) => void;
-  onCommit: (historyId: number) => void;
-  onRollback: (historyId: number) => void;
 }) {
-  // The current editable row: latest spin that hasn't been committed yet.
-  const editable = round.isLatest && !round.committed;
+  // The current editable row is simply the latest spin; older rounds are locked.
+  const editable = round.isLatest;
   const rowClass = editable ? 'round-row current' : 'round-row';
 
   return (
@@ -202,24 +189,6 @@ function RoundLine({
       <td className="col-when">
         <span className="when-time">{formatDay(round.createdAt)}</span>
         {editable && <span className="live-dot" title="Current round" />}
-        {round.isLatest &&
-          (round.committed ? (
-            <button
-              className="flat-btn amber"
-              disabled={disabled}
-              onClick={() => onRollback(round.historyId)}
-            >
-              Undo
-            </button>
-          ) : (
-            <button
-              className="flat-btn"
-              disabled={disabled}
-              onClick={() => onCommit(round.historyId)}
-            >
-              Commit
-            </button>
-          ))}
       </td>
       {users.map((u) => {
         const has = Object.prototype.hasOwnProperty.call(round.values, u.id);

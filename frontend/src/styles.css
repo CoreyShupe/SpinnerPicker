@@ -588,6 +588,53 @@ input[type='range'] {
   font-size: 16px;
 }
 
+/* ---- Confirmation modal ------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 14, 0.66);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  width: min(100%, 380px);
+}
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.modal-message {
+  margin: 0 0 20px;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.btn.ghost:hover:not(:disabled) {
+  border-color: var(--text-dim);
+  filter: none;
+}
+.btn.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
 .toast {
   align-self: stretch;
   border-radius: var(--radius-sm);
@@ -762,28 +809,6 @@ input[type='range'] {
 .no-spin::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
-}
-
-/* Compact, flat commit/undo control (replaces the bubbly pill). */
-.flat-btn {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 0 2px;
-  margin-left: 2px;
-}
-.flat-btn:hover:not(:disabled) {
-  text-decoration: underline;
-}
-.flat-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.flat-btn.amber {
-  color: #d97706;
 }
 
 /* Current-option pill in the scoreboard header shows the full name. */
