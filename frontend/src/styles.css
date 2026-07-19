@@ -693,10 +693,19 @@ input[type='range'] {
   margin-right: 6px;
 }
 .round-row.current {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(139, 92, 246, 0.12);
 }
+/* Close the highlighted current row on all sides so its ends don't read as
+   open — accent borders top/bottom, with capped left/right edges. */
 .round-row.current td {
-  border-bottom-color: rgba(139, 92, 246, 0.3);
+  border-top: 1px solid rgba(139, 92, 246, 0.45);
+  border-bottom-color: rgba(139, 92, 246, 0.45);
+}
+.round-row.current td:first-child {
+  border-left: 2px solid rgba(139, 92, 246, 0.55);
+}
+.round-row.current td:last-child {
+  border-right: 2px solid rgba(139, 92, 246, 0.55);
 }
 .live-dot {
   display: inline-block;
