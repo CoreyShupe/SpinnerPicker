@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Option } from '../api/types';
+import { nextColor } from '../lib/palette';
 
 /**
  * Editable list of a wheel's options. Purely presentational: it raises intent
@@ -22,8 +23,6 @@ interface OptionsEditorProps {
   onDelete: (id: number) => void;
 }
 
-const DEFAULT_NEW_COLOR = '#6366f1';
-
 export function OptionsEditor({
   options,
   disabled,
@@ -35,13 +34,19 @@ export function OptionsEditor({
   onDelete,
 }: OptionsEditorProps) {
   const [label, setLabel] = useState('');
-  const [color, setColor] = useState(DEFAULT_NEW_COLOR);
+  // Suggested color cycles through the palette avoiding the last 4 options'
+  // colors; it advances automatically as options are added. A manual pick
+  // overrides it until the next option is added.
+  const [colorOverride, setColorOverride] = useState<string | null>(null);
+  const suggestedColor = useMemo(() => nextColor(options.map((o) => o.color)), [options]);
+  const color = colorOverride ?? suggestedColor;
 
   const submit = () => {
     const trimmed = label.trim();
     if (!trimmed) return;
     onAdd({ label: trimmed, color, weight: 1 });
     setLabel('');
+    setColorOverride(null); // fall back to the next auto-suggested color
   };
 
   return (
@@ -121,7 +126,7 @@ export function OptionsEditor({
           </ul>
 
           <div className="add-option">
-            <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
+            <input type="color" value={color} onChange={(e) => setColorOverride(e.target.value)}
                    aria-label="New option color" />
             <input
               type="text"

@@ -1,8 +1,4 @@
-/**
- * Default slice colors. Used to auto-assign a pleasant color to a new option
- * when the client doesn't supply one. Kept in sync visually with the frontend
- * palette, but the backend is the source of truth for persisted colors.
- */
+/** Slice colors. Mirrors backend/src/lib/palette.ts (backend is source of truth). */
 export const PALETTE = [
   '#ef4444',
   '#f97316',
@@ -20,22 +16,10 @@ export const PALETTE = [
   '#f43f5e',
 ] as const;
 
-const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
-
-export function isHexColor(value: string): boolean {
-  return HEX_RE.test(value);
-}
-
-/** Pick a palette color by index (wraps around). */
-export function colorForIndex(index: number): string {
-  return PALETTE[index % PALETTE.length];
-}
-
 /**
  * Suggest a color for the next option: cycle through the palette by count, but
  * skip any color used by the last 4 existing options so adjacent options don't
- * repeat colors (mirrors the wheel's no-repeat idea, applied to color).
- * `existingColors` is in option order (oldest first).
+ * repeat colors. `existingColors` is in option order (oldest first).
  */
 export function nextColor(existingColors: string[]): string {
   const recent = new Set(existingColors.slice(-4).map((c) => c.toLowerCase()));
@@ -44,5 +28,5 @@ export function nextColor(existingColors: string[]): string {
     const candidate = PALETTE[(start + i) % PALETTE.length];
     if (!recent.has(candidate.toLowerCase())) return candidate;
   }
-  return colorForIndex(start);
+  return PALETTE[start % PALETTE.length];
 }

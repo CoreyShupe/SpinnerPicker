@@ -27,7 +27,8 @@ wheelsRouter.get('/', (c) => {
 wheelsRouter.post('/', async (c) => {
   const body = asObject(await c.req.json().catch(() => null));
   const name = requireString(body, 'name');
-  const noRepeatWindow = optionalInt(body, 'noRepeatWindow', { min: 0, max: MAX_WINDOW }) ?? 3;
+  // New wheels start with no options, so default the window to 0 (no exclusion).
+  const noRepeatWindow = optionalInt(body, 'noRepeatWindow', { min: 0, max: MAX_WINDOW }) ?? 0;
   const trackStats = optionalBoolean(body, 'trackStats') ?? false;
   const wheel = wheelsRepo.create({ name, noRepeatWindow, trackStats });
   return ok(c, getWheelWithOptions(wheel.id), 201);

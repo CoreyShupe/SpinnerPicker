@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { ApiError, ok } from '../lib/errors.js';
-import { colorForIndex, isHexColor } from '../lib/palette.js';
+import { isHexColor, nextColor } from '../lib/palette.js';
 import {
   asObject,
   optionalInt,
@@ -41,9 +41,9 @@ optionsRouter.post('/wheels/:wheelId/options', async (c) => {
   const weight = optionalInt(body, 'weight', { min: 1, max: MAX_WEIGHT }) ?? 1;
   const providedColor = validateColor(optionalString(body, 'color', 7));
 
-  // Auto-assign a palette color based on current option count when none given.
-  const existingCount = optionsRepo.listByWheel(wheelId).length;
-  const color = providedColor ?? colorForIndex(existingCount);
+  // Auto-assign a palette color that avoids the last few options when none given.
+  const existing = optionsRepo.listByWheel(wheelId);
+  const color = providedColor ?? nextColor(existing.map((o) => o.color));
 
   const option = optionsRepo.create({ wheelId, label, color, weight });
   return ok(c, option, 201);

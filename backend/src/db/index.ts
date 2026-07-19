@@ -24,7 +24,6 @@ export function initializeDatabase(): void {
   const schema = readFileSync(resolve(here, 'schema.sql'), 'utf8');
   db.exec(schema);
   runMigrations();
-  seedIfEmpty();
 }
 
 /** ISO-8601 UTC timestamp — the single source of "now" for all writes. */
@@ -46,51 +45,4 @@ function ensureColumn(table: string, column: string, definition: string): void {
   if (!cols.some((c) => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
-}
-
-function seedIfEmpty(): void {
-  const count = db.prepare('SELECT COUNT(*) AS n FROM wheels').get() as { n: number };
-  if (count.n > 0) return;
-
-  const ts = now();
-  const insertWheel = db.prepare(
-    `INSERT INTO wheels (name, no_repeat_window, track_stats, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)`,
-  );
-  const insertOption = db.prepare(
-    `INSERT INTO options (wheel_id, label, color, weight, position, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  );
-  const insertUser = db.prepare(
-    'INSERT INTO users (wheel_id, name, created_at) VALUES (?, ?, ?)',
-  );
-
-  const seed = db.transaction(() => {
-    // A plain pick-only wheel (no stats).
-    const lunchId = Number(insertWheel.run('Lunch Roulette', 3, 0, ts, ts).lastInsertRowid);
-    (
-      [
-        ['Tacos', '#ef4444'],
-        ['Sushi', '#3b82f6'],
-        ['Pizza', '#f59e0b'],
-        ['Salad', '#22c55e'],
-        ['Ramen', '#8b5cf6'],
-        ['Burgers', '#ec4899'],
-      ] as const
-    ).forEach(([label, color], i) => insertOption.run(lunchId, label, color, 1, i, ts, ts));
-
-    // A stats-tracking wheel with a starter roster.
-    const gameId = Number(insertWheel.run('Game Night', 2, 1, ts, ts).lastInsertRowid);
-    (
-      [
-        ['Chess', '#06b6d4'],
-        ['Darts', '#f97316'],
-        ['Pool', '#22c55e'],
-        ['Cards', '#a855f7'],
-      ] as const
-    ).forEach(([label, color], i) => insertOption.run(gameId, label, color, 1, i, ts, ts));
-    ['Alice', 'Bob'].forEach((name) => insertUser.run(gameId, name, ts));
-  });
-
-  seed();
 }

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS wheels (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
   name              TEXT    NOT NULL,
   -- How many recent picks to avoid repeating.
-  no_repeat_window  INTEGER NOT NULL DEFAULT 3 CHECK (no_repeat_window >= 0),
+  no_repeat_window  INTEGER NOT NULL DEFAULT 0 CHECK (no_repeat_window >= 0),
   -- 1 = wheel tracks per-user stats; 0 = plain pick history only.
   track_stats       INTEGER NOT NULL DEFAULT 0 CHECK (track_stats IN (0, 1)),
   created_at        TEXT    NOT NULL,
