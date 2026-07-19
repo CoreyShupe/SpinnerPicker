@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { Option } from '../api/types';
 import { pointOnCircle, slicePath } from '../lib/wheelGeometry';
 
@@ -23,7 +23,7 @@ interface WheelProps {
   onSpinEnd: () => void;
 }
 
-export function Wheel({
+function WheelComponent({
   options,
   rotation,
   spinning,
@@ -44,6 +44,16 @@ export function Wheel({
     return () => rotor.removeEventListener('transitionend', handle);
   }, [onSpinEnd]);
 
+  // Safety net: guarantee the spin finishes even if `transitionend` never
+  // arrives — e.g. a re-render (a wheel edit, a stats refresh) interrupts the
+  // transition, or the rotation didn't actually change. Without this a missed
+  // event would leave `spinning` stuck true and the Spin button disabled.
+  useEffect(() => {
+    if (!spinning) return;
+    const timer = window.setTimeout(onSpinEnd, durationMs + 200);
+    return () => window.clearTimeout(timer);
+  }, [spinning, durationMs, onSpinEnd]);
+
   const count = options.length;
   const slice = count > 0 ? 360 / count : 360;
 
@@ -58,6 +68,7 @@ export function Wheel({
           transition: spinning
             ? `transform ${durationMs}ms cubic-bezier(0.15, 0.9, 0.25, 1)`
             : 'none',
+          willChange: spinning ? 'transform' : undefined,
         }}
       >
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width="100%" height="100%" role="img"
@@ -111,3 +122,8 @@ export function Wheel({
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
+
+// Memoized: the SVG is moderately expensive to render, and App re-renders for
+// many unrelated reasons (typing, panel toggles, data refreshes). Without this
+// the whole wheel re-renders each time, contributing to interaction jank.
+export const Wheel = memo(WheelComponent);

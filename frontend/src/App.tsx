@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, api } from './api/client';
 import type {
   HistoryEntry,
@@ -25,10 +25,13 @@ export default function App() {
   const [catalog, setCatalog] = useState<StatsCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [optionsCollapsed, setOptionsCollapsed] = useState(false);
+  // Options panel starts collapsed for every wheel except one just created via
+  // the new-wheel flow (tracked by justCreatedRef), where it opens for entry.
+  const [optionsCollapsed, setOptionsCollapsed] = useState(true);
   // Picks cap is sequenced separately from the options panel so opening options
   // shrinks the picks card *first*, avoiding a transient overflow scrollbar.
-  const [picksSmall, setPicksSmall] = useState(true);
+  const [picksSmall, setPicksSmall] = useState(false);
+  const justCreatedRef = useRef<number | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sideCollapsed, setSideCollapsed] = useState(false);
 
@@ -138,6 +141,15 @@ export default function App() {
     })();
   }, [loadWheels]);
 
+  // Collapse the options panel whenever a wheel is entered — except one just
+  // created via the new-wheel flow, which opens for immediate option entry.
+  useEffect(() => {
+    const isNewWheel = justCreatedRef.current != null && justCreatedRef.current === selectedId;
+    justCreatedRef.current = null;
+    setOptionsCollapsed(!isNewWheel);
+    setPicksSmall(isNewWheel);
+  }, [selectedId]);
+
   // Load the appropriate side panel whenever the selected wheel or its stats
   // mode changes.
   useEffect(() => {
@@ -178,6 +190,8 @@ export default function App() {
     run(async () => {
       const wheel = await api.createWheel({ name, trackStats });
       await loadWheels();
+      // Mark as newly created so the options panel opens for option entry.
+      justCreatedRef.current = wheel.id;
       setSelectedId(wheel.id);
     });
 
@@ -445,7 +459,7 @@ export default function App() {
             />
             <HistoryPanel
               history={history}
-              limit={picksSmall ? 5 : 10}
+              limit={picksSmall ? 1 : 10}
               onDelete={deleteHistory}
               onClear={clearHistory}
             />
