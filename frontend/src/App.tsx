@@ -24,6 +24,27 @@ export default function App() {
   const [catalog, setCatalog] = useState<StatsCatalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [optionsCollapsed, setOptionsCollapsed] = useState(false);
+  // Picks cap is sequenced separately from the options panel so opening options
+  // shrinks the picks card *first*, avoiding a transient overflow scrollbar.
+  const [picksSmall, setPicksSmall] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sideCollapsed, setSideCollapsed] = useState(false);
+
+  /**
+   * Toggle the options panel. Opening shrinks the picks card first, then expands
+   * options once the picks card has settled; closing collapses options
+   * immediately and lets picks grow back into the freed space.
+   */
+  const toggleOptions = () => {
+    if (optionsCollapsed) {
+      setPicksSmall(true); // shrink picks now (only ever gets smaller — no overflow)
+      window.setTimeout(() => setOptionsCollapsed(false), 220);
+    } else {
+      setOptionsCollapsed(true);
+      setPicksSmall(false);
+    }
+  };
 
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
@@ -34,6 +55,24 @@ export default function App() {
     () => wheels.find((w) => w.id === selectedId) ?? null,
     [wheels, selectedId],
   );
+
+  /**
+   * Options blocked from the next spin by the no-repeat window. Mirrors the
+   * backend picker: exclude the ids among the most recent `effectiveWindow`
+   * picks, where the window is clamped so at least one option stays eligible.
+   */
+  const excludedIds = useMemo(() => {
+    if (!selected) return new Set<number>();
+    const effectiveWindow = Math.min(
+      Math.max(selected.noRepeatWindow, 0),
+      Math.max(0, selected.options.length - 1),
+    );
+    const recent = history
+      .map((h) => h.optionId)
+      .filter((id): id is number => id != null)
+      .slice(0, effectiveWindow);
+    return new Set(recent);
+  }, [selected, history]);
 
   /** Wrap an API call: surface errors as a toast, never throw into render. */
   const run = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
@@ -68,10 +107,16 @@ export default function App() {
     [run],
   );
 
-  /** Refresh the side panel data appropriate to the wheel (stats vs history). */
+  /**
+   * Refresh the side panel data for a wheel. Pick history is always loaded (the
+   * Picks panel is shown for every wheel); stats wheels additionally load the
+   * scoreboard catalog.
+   */
   const refreshSidePanel = useCallback(
-    (wheel: { id: number; trackStats: boolean }) =>
-      wheel.trackStats ? loadCatalog(wheel.id) : loadHistory(wheel.id),
+    async (wheel: { id: number; trackStats: boolean }) => {
+      await loadHistory(wheel.id);
+      if (wheel.trackStats) await loadCatalog(wheel.id);
+    },
     [loadCatalog, loadHistory],
   );
 
@@ -177,18 +222,19 @@ export default function App() {
     });
 
   // ---- History CRUD -------------------------------------------------------
+  // Deleting picks cascades to their stats, so refresh the scoreboard too.
   const deleteHistory = (id: number) =>
-    selectedId != null &&
+    selected &&
     run(async () => {
       await api.deleteHistory(id);
-      await loadHistory(selectedId);
+      await refreshSidePanel(selected);
     });
 
   const clearHistory = () =>
-    selectedId != null &&
+    selected &&
     run(async () => {
-      await api.clearHistory(selectedId);
-      await loadHistory(selectedId);
+      await api.clearHistory(selected.id);
+      await refreshSidePanel(selected);
     });
 
   // ---- Users & stats ------------------------------------------------------
@@ -220,13 +266,28 @@ export default function App() {
     run(async () => setCatalog(await api.rollbackRound(historyId)));
 
   const busy = spinning;
+  const showScoreboard = !!(selected?.trackStats && catalog);
+
+  // Grid tracks are derived from what actually renders so columns stay aligned:
+  // sidebar (always) · scoreboard (stats only) · stage (always) · side (when a
+  // wheel is selected). Collapsed columns shrink to a thin rail.
+  const cols = [
+    sidebarCollapsed ? '48px' : '280px',
+    showScoreboard ? 'fit-content(560px)' : null,
+    'minmax(400px, 1fr)',
+    selected ? (sideCollapsed ? '48px' : '340px') : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className="app">
+    <div className="app" style={{ ['--cols' as string]: cols }}>
       <WheelSidebar
         wheels={wheels}
         selectedId={selectedId}
         disabled={busy}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
         onSelect={setSelectedId}
         onCreate={createWheel}
         onRename={renameWheel}
@@ -234,6 +295,20 @@ export default function App() {
         onToggleStats={toggleStats}
         onDelete={deleteWheel}
       />
+
+      {showScoreboard && (
+        <div className="scoreboard-column">
+          <StatsPanel
+            catalog={catalog}
+            disabled={busy}
+            onAddUser={addUser}
+            onDeleteUser={deleteUser}
+            onSetStat={setStat}
+            onCommit={commitRound}
+            onRollback={rollbackRound}
+          />
+        </div>
+      )}
 
       <main className="stage-column">
         {error && (
@@ -253,6 +328,7 @@ export default function App() {
               rotation={rotation}
               spinning={spinning}
               durationMs={SPIN_DURATION_MS}
+              excludedIds={excludedIds}
               onSpinEnd={handleSpinEnd}
             />
 
@@ -288,32 +364,49 @@ export default function App() {
         )}
       </main>
 
-      {selected && (
-        <div className="side-column">
-          <OptionsEditor
-            options={selected.options}
-            disabled={busy}
-            onAdd={addOption}
-            onUpdate={updateOption}
-            onDelete={deleteOption}
-          />
-          {selected.trackStats ? (
-            catalog && (
-              <StatsPanel
-                catalog={catalog}
-                disabled={busy}
-                onAddUser={addUser}
-                onDeleteUser={deleteUser}
-                onSetStat={setStat}
-                onCommit={commitRound}
-                onRollback={rollbackRound}
-              />
-            )
-          ) : (
-            <HistoryPanel history={history} onDelete={deleteHistory} onClear={clearHistory} />
-          )}
-        </div>
-      )}
+      {selected &&
+        (sideCollapsed ? (
+          <div className="side-column rail">
+            <button
+              className="rail-toggle"
+              onClick={() => setSideCollapsed(false)}
+              title="Show options & picks"
+              aria-label="Show options and picks"
+            >
+              ‹
+            </button>
+            <span className="rail-label">Options</span>
+          </div>
+        ) : (
+          <div className="side-column">
+            <div className="side-column-bar">
+              <button
+                className="rail-toggle in-header"
+                onClick={() => setSideCollapsed(true)}
+                title="Hide options & picks"
+                aria-label="Hide options and picks"
+              >
+                ›
+              </button>
+            </div>
+            <OptionsEditor
+              options={selected.options}
+              disabled={busy}
+              collapsed={optionsCollapsed}
+              excludedIds={excludedIds}
+              onToggleCollapse={toggleOptions}
+              onAdd={addOption}
+              onUpdate={updateOption}
+              onDelete={deleteOption}
+            />
+            <HistoryPanel
+              history={history}
+              limit={picksSmall ? 5 : 10}
+              onDelete={deleteHistory}
+              onClear={clearHistory}
+            />
+          </div>
+        ))}
     </div>
   );
 }

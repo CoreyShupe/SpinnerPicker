@@ -51,6 +51,8 @@ export interface User {
  */
 export interface RoundRow {
   historyId: number;
+  /** Identity of the option this spin landed on; null if that option was deleted. */
+  optionId: number | null;
   optionLabel: string;
   committed: boolean;
   /** True for the most recent spin of the wheel (the editable / rollback-able one). */

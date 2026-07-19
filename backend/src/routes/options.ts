@@ -4,7 +4,6 @@ import { colorForIndex, isHexColor } from '../lib/palette.js';
 import {
   asObject,
   optionalInt,
-  optionalNumber,
   optionalString,
   parseId,
   requireString,
@@ -39,7 +38,7 @@ optionsRouter.post('/wheels/:wheelId/options', async (c) => {
 
   const body = asObject(await c.req.json().catch(() => null));
   const label = requireString(body, 'label', 100);
-  const weight = optionalNumber(body, 'weight', { min: 0.01, max: MAX_WEIGHT }) ?? 1;
+  const weight = optionalInt(body, 'weight', { min: 1, max: MAX_WEIGHT }) ?? 1;
   const providedColor = validateColor(optionalString(body, 'color', 7));
 
   // Auto-assign a palette color based on current option count when none given.
@@ -57,7 +56,7 @@ optionsRouter.patch('/options/:id', async (c) => {
 
   const label = optionalString(body, 'label', 100);
   const color = validateColor(optionalString(body, 'color', 7));
-  const weight = optionalNumber(body, 'weight', { min: 0.01, max: MAX_WEIGHT });
+  const weight = optionalInt(body, 'weight', { min: 1, max: MAX_WEIGHT });
   const position = optionalInt(body, 'position', { min: 0, max: 100000 });
 
   if (label === undefined && color === undefined && weight === undefined && position === undefined) {

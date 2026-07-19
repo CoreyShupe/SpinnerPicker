@@ -19,6 +19,8 @@ export interface User {
 /** One catalog row: a spin (round) with each user's value. */
 export interface RoundRow {
   historyId: number;
+  /** Identity of the option this spin landed on; null if that option was deleted. */
+  optionId: number | null;
   optionLabel: string;
   committed: boolean;
   isLatest: boolean;

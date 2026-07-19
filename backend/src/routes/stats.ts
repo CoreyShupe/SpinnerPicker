@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { ok } from '../lib/errors.js';
-import { asObject, optionalNumber, parseId } from '../lib/validation.js';
+import { asObject, optionalInt, parseId } from '../lib/validation.js';
 import { commitRound, editCell, getCatalog, rollbackRound } from '../services/statsService.js';
 
 /**
@@ -32,7 +32,7 @@ statsRouter.put('/rounds/:historyId/stats', async (c) => {
   const value =
     body.value === null
       ? null
-      : optionalNumber(body, 'value', { min: -MAX_VALUE, max: MAX_VALUE }) ?? 0;
+      : optionalInt(body, 'value', { min: -MAX_VALUE, max: MAX_VALUE }) ?? 0;
   return ok(c, editCell(historyId, userId, value));
 });
 

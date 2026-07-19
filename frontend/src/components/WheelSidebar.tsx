@@ -10,6 +10,8 @@ interface WheelSidebarProps {
   wheels: WheelWithOptions[];
   selectedId: number | null;
   disabled: boolean;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onSelect: (id: number) => void;
   onCreate: (name: string, trackStats: boolean) => void;
   onRename: (id: number, name: string) => void;
@@ -22,6 +24,8 @@ export function WheelSidebar({
   wheels,
   selectedId,
   disabled,
+  collapsed,
+  onToggleCollapse,
   onSelect,
   onCreate,
   onRename,
@@ -30,16 +34,32 @@ export function WheelSidebar({
   onDelete,
 }: WheelSidebarProps) {
   const [newName, setNewName] = useState('');
-  const [newTrackStats, setNewTrackStats] = useState(false);
   const selected = wheels.find((w) => w.id === selectedId) ?? null;
 
   const create = () => {
     const name = newName.trim();
     if (!name) return;
-    onCreate(name, newTrackStats);
+    // Stats tracking is off by default; it's toggled per-wheel in Settings.
+    onCreate(name, false);
     setNewName('');
-    setNewTrackStats(false);
   };
+
+  if (collapsed) {
+    return (
+      <aside className="sidebar rail">
+        <button
+          className="rail-toggle"
+          onClick={onToggleCollapse}
+          title="Show wheels & settings"
+          aria-label="Show wheels and settings"
+        >
+          ›
+        </button>
+        <span className="rail-mark">🎡</span>
+        <span className="rail-label">Wheels</span>
+      </aside>
+    );
+  }
 
   return (
     <aside className="sidebar">
@@ -49,6 +69,14 @@ export function WheelSidebar({
           <h1>Spinner Picker</h1>
           <p className="brand-sub">Never the same twice in a row</p>
         </div>
+        <button
+          className="rail-toggle in-header"
+          onClick={onToggleCollapse}
+          title="Hide sidebar"
+          aria-label="Hide sidebar"
+        >
+          ‹
+        </button>
       </div>
 
       <div className="panel">
@@ -80,14 +108,6 @@ export function WheelSidebar({
             +
           </button>
         </div>
-        <label className="checkbox-field">
-          <input
-            type="checkbox"
-            checked={newTrackStats}
-            onChange={(e) => setNewTrackStats(e.target.checked)}
-          />
-          <span>Track per-user stats</span>
-        </label>
       </div>
 
       {selected && (
@@ -111,23 +131,50 @@ export function WheelSidebar({
             />
           </label>
 
-          <label className="field">
-            <span>
-              No-repeat window: <strong>{selected.noRepeatWindow}</strong>
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={Math.max(0, selected.options.length - 1)}
-              value={Math.min(selected.noRepeatWindow, Math.max(0, selected.options.length - 1))}
-              disabled={disabled || selected.options.length < 2}
-              onChange={(e) => onWindowChange(selected.id, Number(e.target.value))}
-            />
-            <small className="hint">
-              Avoid repeating the last {selected.noRepeatWindow} pick
-              {selected.noRepeatWindow === 1 ? '' : 's'}.
-            </small>
-          </label>
+          {(() => {
+            const max = Math.max(0, selected.options.length - 1);
+            const value = Math.min(selected.noRepeatWindow, max);
+            const lockedOut = disabled || selected.options.length < 2;
+            const setWindow = (next: number) =>
+              onWindowChange(selected.id, Math.min(Math.max(next, 0), max));
+            return (
+              <label className="field">
+                <span>
+                  No-repeat window: <strong>{selected.noRepeatWindow}</strong>
+                </span>
+                <div className="window-controls">
+                  <button
+                    className="step-btn"
+                    onClick={() => setWindow(value - 1)}
+                    disabled={lockedOut || value <= 0}
+                    aria-label="Decrease no-repeat window"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={max}
+                    value={value}
+                    disabled={lockedOut}
+                    onChange={(e) => setWindow(Number(e.target.value))}
+                  />
+                  <button
+                    className="step-btn"
+                    onClick={() => setWindow(value + 1)}
+                    disabled={lockedOut || value >= max}
+                    aria-label="Increase no-repeat window"
+                  >
+                    +
+                  </button>
+                </div>
+                <small className="hint">
+                  Avoid repeating the last {selected.noRepeatWindow} pick
+                  {selected.noRepeatWindow === 1 ? '' : 's'}.
+                </small>
+              </label>
+            );
+          })()}
 
           <label className="checkbox-field">
             <input

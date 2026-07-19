@@ -4,11 +4,19 @@ import type { Option } from '../api/types';
 /**
  * Editable list of a wheel's options. Purely presentational: it raises intent
  * via callbacks; the parent performs API calls and refreshes state.
+ *
+ * The panel is collapsible; collapse state is owned by the parent because other
+ * panels (the pick history cap) react to it. The list shows at most ~10 rows
+ * before scrolling.
  */
 
 interface OptionsEditorProps {
   options: Option[];
   disabled: boolean;
+  collapsed: boolean;
+  /** Option ids currently blocked by the no-repeat window (shown crossed out). */
+  excludedIds: Set<number>;
+  onToggleCollapse: () => void;
   onAdd: (data: { label: string; color: string; weight: number }) => void;
   onUpdate: (id: number, patch: Partial<Pick<Option, 'label' | 'color' | 'weight'>>) => void;
   onDelete: (id: number) => void;
@@ -19,6 +27,9 @@ const DEFAULT_NEW_COLOR = '#6366f1';
 export function OptionsEditor({
   options,
   disabled,
+  collapsed,
+  excludedIds,
+  onToggleCollapse,
   onAdd,
   onUpdate,
   onDelete,
@@ -36,74 +47,96 @@ export function OptionsEditor({
   return (
     <section className="panel">
       <div className="panel-header">
-        <h2>Options</h2>
+        <button
+          className="collapse-toggle"
+          onClick={onToggleCollapse}
+          aria-expanded={!collapsed}
+        >
+          <span className={`chevron ${collapsed ? 'collapsed' : ''}`}>▾</span>
+          <h2>Options</h2>
+        </button>
         <span className="badge">{options.length}</span>
       </div>
 
-      <ul className="option-list">
-        {options.map((opt) => (
-          <li key={opt.id} className="option-row">
-            <input
-              type="color"
-              value={opt.color}
-              disabled={disabled}
-              onChange={(e) => onUpdate(opt.id, { color: e.target.value })}
-              aria-label={`Color for ${opt.label}`}
-            />
+      {!collapsed && (
+        <>
+          <ul className="option-list option-scroll">
+            {options.map((opt) => {
+              const excluded = excludedIds.has(opt.id);
+              return (
+                <li
+                  key={opt.id}
+                  className={excluded ? 'option-row excluded' : 'option-row'}
+                  title={excluded ? 'Blocked by the no-repeat window this spin' : undefined}
+                >
+                  <input
+                    type="color"
+                    value={opt.color}
+                    disabled={disabled}
+                    onChange={(e) => onUpdate(opt.id, { color: e.target.value })}
+                    aria-label={`Color for ${opt.label}`}
+                  />
+                  <input
+                    type="text"
+                    className="option-label-input"
+                    defaultValue={opt.label}
+                    disabled={disabled}
+                    onBlur={(e) => {
+                      const next = e.target.value.trim();
+                      if (next && next !== opt.label) onUpdate(opt.id, { label: next });
+                      else e.target.value = opt.label;
+                    }}
+                  />
+                  <label className="weight-field" title="Selection weight (whole number)">
+                    <span>×</span>
+                    <input
+                      type="number"
+                      className="no-spin"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      defaultValue={opt.weight}
+                      disabled={disabled}
+                      onBlur={(e) => {
+                        const next = Math.round(Number(e.target.value));
+                        if (next >= 1 && next !== opt.weight) onUpdate(opt.id, { weight: next });
+                        else e.target.value = String(opt.weight);
+                      }}
+                    />
+                  </label>
+                  <button
+                    className="icon-btn danger"
+                    disabled={disabled}
+                    onClick={() => onDelete(opt.id)}
+                    aria-label={`Remove ${opt.label}`}
+                  >
+                    ✕
+                  </button>
+                </li>
+              );
+            })}
+            {options.length === 0 && (
+              <li className="empty-hint">No options yet — add one below.</li>
+            )}
+          </ul>
+
+          <div className="add-option">
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
+                   aria-label="New option color" />
             <input
               type="text"
-              className="option-label-input"
-              defaultValue={opt.label}
+              placeholder="Add an option…"
+              value={label}
               disabled={disabled}
-              onBlur={(e) => {
-                const next = e.target.value.trim();
-                if (next && next !== opt.label) onUpdate(opt.id, { label: next });
-                else e.target.value = opt.label;
-              }}
+              onChange={(e) => setLabel(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && submit()}
             />
-            <label className="weight-field" title="Selection weight">
-              <span>×</span>
-              <input
-                type="number"
-                min={0.1}
-                step={0.1}
-                defaultValue={opt.weight}
-                disabled={disabled}
-                onBlur={(e) => {
-                  const next = Number(e.target.value);
-                  if (next > 0 && next !== opt.weight) onUpdate(opt.id, { weight: next });
-                  else e.target.value = String(opt.weight);
-                }}
-              />
-            </label>
-            <button
-              className="icon-btn danger"
-              disabled={disabled}
-              onClick={() => onDelete(opt.id)}
-              aria-label={`Remove ${opt.label}`}
-            >
-              ✕
+            <button className="btn" onClick={submit} disabled={disabled || !label.trim()}>
+              Add
             </button>
-          </li>
-        ))}
-        {options.length === 0 && <li className="empty-hint">No options yet — add one below.</li>}
-      </ul>
-
-      <div className="add-option">
-        <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
-               aria-label="New option color" />
-        <input
-          type="text"
-          placeholder="Add an option…"
-          value={label}
-          disabled={disabled}
-          onChange={(e) => setLabel(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-        />
-        <button className="btn" onClick={submit} disabled={disabled || !label.trim()}>
-          Add
-        </button>
-      </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }

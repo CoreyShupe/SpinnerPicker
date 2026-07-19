@@ -8,7 +8,7 @@ import { pointOnCircle, slicePath } from '../lib/wheelGeometry';
  * `onSpinEnd` so the parent can reveal the result.
  */
 
-const SIZE = 320;
+const SIZE = 380;
 const CENTER = SIZE / 2;
 const RADIUS = CENTER - 6;
 const LABEL_RADIUS = RADIUS * 0.64;
@@ -18,10 +18,19 @@ interface WheelProps {
   rotation: number;
   spinning: boolean;
   durationMs: number;
+  /** Option ids currently blocked by the no-repeat window; drawn dimmed. */
+  excludedIds?: Set<number>;
   onSpinEnd: () => void;
 }
 
-export function Wheel({ options, rotation, spinning, durationMs, onSpinEnd }: WheelProps) {
+export function Wheel({
+  options,
+  rotation,
+  spinning,
+  durationMs,
+  excludedIds,
+  onSpinEnd,
+}: WheelProps) {
   const rotorRef = useRef<HTMLDivElement>(null);
 
   // Fire onSpinEnd exactly when the rotor's transform transition completes.
@@ -39,7 +48,7 @@ export function Wheel({ options, rotation, spinning, durationMs, onSpinEnd }: Wh
   const slice = count > 0 ? 360 / count : 360;
 
   return (
-    <div className="wheel-stage" style={{ width: SIZE, height: SIZE }}>
+    <div className="wheel-stage">
       <div className="wheel-pointer" aria-hidden />
       <div
         ref={rotorRef}
@@ -51,7 +60,7 @@ export function Wheel({ options, rotation, spinning, durationMs, onSpinEnd }: Wh
             : 'none',
         }}
       >
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={SIZE} height={SIZE} role="img"
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} width="100%" height="100%" role="img"
              aria-label="Picker wheel">
           {count === 0 ? (
             <circle cx={CENTER} cy={CENTER} r={RADIUS} className="wheel-empty" />
@@ -63,11 +72,12 @@ export function Wheel({ options, rotation, spinning, durationMs, onSpinEnd }: Wh
               const p = pointOnCircle(CENTER, CENTER, LABEL_RADIUS, mid);
               // Keep labels upright on the lower half of the wheel.
               const textAngle = mid > 90 && mid < 270 ? mid + 180 : mid;
+              const excluded = excludedIds?.has(opt.id) ?? false;
               return (
-                <g key={opt.id}>
+                <g key={opt.id} className={excluded ? 'wheel-slice excluded' : 'wheel-slice'}>
                   <path
                     d={slicePath(CENTER, CENTER, RADIUS, start, end)}
-                    fill={opt.color}
+                    fill={excluded ? '#3a3f4b' : opt.color}
                     stroke="rgba(255,255,255,0.35)"
                     strokeWidth={1.5}
                   />
@@ -81,6 +91,7 @@ export function Wheel({ options, rotation, spinning, durationMs, onSpinEnd }: Wh
                     dominantBaseline="middle"
                     transform={`rotate(${textAngle} ${p.x} ${p.y})`}
                     className="wheel-label"
+                    style={excluded ? { textDecoration: 'line-through', opacity: 0.7 } : undefined}
                   >
                     {truncate(opt.label, count > 10 ? 10 : 16)}
                   </text>

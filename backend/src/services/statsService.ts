@@ -31,6 +31,7 @@ export function getCatalog(wheelId: number): StatsCatalog {
   const spins = historyRepo.listByWheel(wheelId, 1000);
   const rounds: RoundRow[] = spins.map((spin) => ({
     historyId: spin.id,
+    optionId: spin.optionId,
     optionLabel: spin.optionLabel,
     committed: spin.statsCommitted,
     isLatest: latest?.id === spin.id,
