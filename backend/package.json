@@ -5,8 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
-    "build": "tsc",
+    "dev": "node esbuild.mjs --watch",
+    "build": "tsc --noEmit && node esbuild.mjs",
     "start": "node --env-file-if-exists=.env dist/index.js"
   },
   "dependencies": {
@@ -17,7 +17,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
-    "tsx": "^4.19.2",
+    "esbuild": "^0.28.1",
     "typescript": "^5.7.3"
   }
 }

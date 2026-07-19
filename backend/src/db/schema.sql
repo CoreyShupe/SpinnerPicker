@@ -1,6 +1,9 @@
 -- Schema for the Spinner Picker. Applied idempotently on startup.
 -- Naming: snake_case columns; timestamps are ISO-8601 UTC strings.
 -- Additive column changes are handled by the migration guard in db/index.ts.
+--
+-- This file is imported as a string by db/index.ts; esbuild's text loader
+-- inlines it into the build, so it ships without a copy step.
 
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;

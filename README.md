@@ -97,7 +97,7 @@ checklist to follow when adding a feature.
 ## Production build
 
 ```bash
-npm run build           # builds backend (tsc) and frontend (vite)
+npm run build           # builds backend (tsc typecheck + esbuild) and frontend (vite)
 npm run start:backend   # node dist/index.js
 npm run start:frontend  # vite preview (or serve frontend/dist with any static host)
 ```

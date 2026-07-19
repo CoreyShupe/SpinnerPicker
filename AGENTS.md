@@ -23,7 +23,7 @@ a numeric score per user per round (see "Stats feature" below).
 │       ├── config.ts     # ALL env access lives here (never read process.env elsewhere)
 │       ├── index.ts      # app wiring: middleware, router mounts, error handler
 │       ├── types.ts      # domain types (camelCase)
-│       ├── db/           # connection singleton + schema.sql + seed
+│       ├── db/           # connection singleton + schema.sql (inlined by esbuild)
 │       ├── lib/          # pure helpers: errors, validation, picker, palette
 │       ├── repositories/ # ALL SQL lives here; maps snake_case <-> camelCase
 │       ├── services/     # cross-entity / transactional use-cases
@@ -54,10 +54,11 @@ the built output.
 - **Each package reads its own `.env`, next to its code — there is no root `.env`.**
   npm runs each workspace script with the cwd set to that package, so a relative
   `.env` resolves inside the package.
-- Backend: `backend/.env` is loaded by `--env-file-if-exists=.env` in the
-  `dev`/`start` scripts, then read **only** in `backend/src/config.ts` (import
-  `config` from there — never touch `process.env` elsewhere). Real shell env vars
-  take precedence over the file. Adding a setting = add a parsed field in
+- Backend: `backend/.env` is loaded via node's `--env-file-if-exists=.env` flag
+  when the server runs (the `start` script, and the dev server that
+  `esbuild.mjs` spawns on rebuild), then read **only** in `backend/src/config.ts`
+  (import `config` from there — never touch `process.env` elsewhere). Real shell
+  env vars take precedence over the file. Adding a setting = add a parsed field in
   `config.ts` + document it in `backend/.env.example`.
 - Frontend: Vite auto-loads `frontend/.env`. The API base URL is
   `import.meta.env.VITE_API_URL`, read **only** in `frontend/src/api/client.ts`.

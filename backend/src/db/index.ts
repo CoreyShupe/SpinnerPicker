@@ -1,16 +1,14 @@
 import Database from 'better-sqlite3';
-import { mkdirSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { config } from '../config.js';
+import schema from './schema.sql';
 
 /**
  * SQLite connection singleton. Import `db` anywhere that needs data access —
  * but prefer going through the repositories in src/repositories, which own all
  * SQL and the snake_case <-> camelCase mapping.
  */
-
-const here = dirname(fileURLToPath(import.meta.url));
 
 // Ensure the parent directory for the database file exists.
 mkdirSync(dirname(config.databasePath), { recursive: true });
@@ -21,7 +19,6 @@ db.pragma('foreign_keys = ON');
 
 /** Apply the schema (idempotent) and run additive migrations. */
 export function initializeDatabase(): void {
-  const schema = readFileSync(resolve(here, 'schema.sql'), 'utf8');
   db.exec(schema);
   runMigrations();
 }
