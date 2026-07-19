@@ -30,15 +30,60 @@ function resolvePath(value: string): string {
   return isAbsolute(value) ? value : resolve(packageRoot, value);
 }
 
+const LOOPBACK_TWIN: Record<string, string> = {
+  localhost: '127.0.0.1',
+  '127.0.0.1': 'localhost',
+};
+
+/**
+ * Return the loopback twin of an origin (localhost <-> 127.0.0.1), preserving
+ * scheme and port, or null if it isn't a loopback origin. We parse the URL and
+ * match the *hostname exactly* rather than substring-replacing, so hosts like
+ * `notlocalhost.com` — or a `localhost` sitting in a path — are never rewritten.
+ */
+function loopbackTwin(origin: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return null; // e.g. "*" or a malformed value — leave as-is.
+  }
+  const twinHost = LOOPBACK_TWIN[url.hostname];
+  if (!twinHost) return null;
+  url.hostname = twinHost;
+  return url.origin; // scheme://host[:port], normalized, no path.
+}
+
+/**
+ * `localhost` and `127.0.0.1` are distinct origins to a browser, so a dev server
+ * reached via one is blocked if CORS only allows the other. To avoid making
+ * callers list both (repeating the port), we auto-add the loopback twin of any
+ * localhost/127.0.0.1 origin. Non-loopback origins (real hosts) are untouched.
+ */
+function withLoopbackTwins(origins: string[]): string[] {
+  const out = new Set<string>();
+  for (const origin of origins) {
+    out.add(origin);
+    const twin = loopbackTwin(origin);
+    if (twin) out.add(twin);
+  }
+  return [...out];
+}
+
 const corsOrigin = str('CORS_ORIGIN', 'http://localhost:5173');
 
 export const config = {
   host: str('HOST', '127.0.0.1'),
   port: int('PORT', 8787),
   databasePath: resolvePath(str('DATABASE_PATH', './data/spinner.db')),
-  /** Parsed list of allowed origins. `*` (any single entry) means allow all. */
-  corsOrigins: corsOrigin
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean),
+  /**
+   * Allowed CORS origins. `*` (any single entry) means allow all; otherwise a
+   * comma-separated list, with localhost/127.0.0.1 twins added automatically.
+   */
+  corsOrigins: withLoopbackTwins(
+    corsOrigin
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+  ),
 } as const;
