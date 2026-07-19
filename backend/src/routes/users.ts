@@ -5,21 +5,14 @@ import { usersRepo } from '../repositories/users.js';
 import { requireStatsWheel } from '../services/wheelService.js';
 
 /**
- * Routes for per-wheel users (players). Listing/creating is nested under a
- * wheel; deleting addresses a user by id.
+ * Routes for per-wheel users (players). Creating is nested under a wheel;
+ * deleting addresses a user by id. (The roster is read via the stats catalog.)
  *
  * Mounted at /api so paths are:
- *   GET/POST  /api/wheels/:wheelId/users
- *   DELETE    /api/users/:id
+ *   POST    /api/wheels/:wheelId/users
+ *   DELETE  /api/users/:id
  */
 export const usersRouter = new Hono();
-
-// List a wheel's users.
-usersRouter.get('/wheels/:wheelId/users', (c) => {
-  const wheelId = parseId(c.req.param('wheelId'), 'wheel id');
-  requireStatsWheel(wheelId);
-  return ok(c, usersRepo.listByWheel(wheelId));
-});
 
 // Add a user to a wheel (name unique within the wheel).
 usersRouter.post('/wheels/:wheelId/users', async (c) => {

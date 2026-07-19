@@ -54,7 +54,6 @@ function body(data: unknown): RequestInit {
 export const api = {
   // Wheels
   listWheels: () => request<WheelWithOptions[]>('/api/wheels'),
-  getWheel: (id: number) => request<WheelWithOptions>(`/api/wheels/${id}`),
   createWheel: (data: { name: string; noRepeatWindow?: number; trackStats?: boolean }) =>
     request<WheelWithOptions>('/api/wheels', { method: 'POST', ...body(data) }),
   updateWheel: (
@@ -88,7 +87,6 @@ export const api = {
     request<{ removed: number }>(`/api/wheels/${wheelId}/history`, { method: 'DELETE' }),
 
   // Users (stats wheels only)
-  listUsers: (wheelId: number) => request<User[]>(`/api/wheels/${wheelId}/users`),
   createUser: (wheelId: number, name: string) =>
     request<User>(`/api/wheels/${wheelId}/users`, { method: 'POST', ...body({ name }) }),
   deleteUser: (id: number) =>

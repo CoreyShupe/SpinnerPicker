@@ -42,5 +42,3 @@ export const config = {
     .map((o) => o.trim())
     .filter(Boolean),
 } as const;
-
-export type Config = typeof config;

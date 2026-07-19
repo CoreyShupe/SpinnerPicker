@@ -18,7 +18,6 @@ a numeric score per user per round (see "Stats feature" below).
 ```
 .
 ├── package.json          # npm workspaces + root run scripts
-├── .env.example          # documents every env var (backend + frontend)
 ├── backend/              # Hono API over a local SQLite file
 │   └── src/
 │       ├── config.ts     # ALL env access lives here (never read process.env elsewhere)
@@ -52,13 +51,19 @@ the built output.
 ## Configuration — never hard-code
 
 - Every configurable value comes from an environment variable **with a default**.
-- Backend: read them **only** in `backend/src/config.ts`. Import `config` from
-  there. Adding a setting = add a parsed field in `config.ts` + document it in
-  `.env.example` (root and `backend/.env.example`).
-- Frontend: the API base URL is `import.meta.env.VITE_API_URL`, read **only** in
-  `frontend/src/api/client.ts`. Dev host/port come from `FRONTEND_HOST` /
-  `FRONTEND_PORT` in `vite.config.ts`. Vite only exposes vars prefixed `VITE_`
-  to the browser.
+- **Each package reads its own `.env`, next to its code — there is no root `.env`.**
+  npm runs each workspace script with the cwd set to that package, so a relative
+  `.env` resolves inside the package.
+- Backend: `backend/.env` is loaded by `--env-file-if-exists=.env` in the
+  `dev`/`start` scripts, then read **only** in `backend/src/config.ts` (import
+  `config` from there — never touch `process.env` elsewhere). Real shell env vars
+  take precedence over the file. Adding a setting = add a parsed field in
+  `config.ts` + document it in `backend/.env.example`.
+- Frontend: Vite auto-loads `frontend/.env`. The API base URL is
+  `import.meta.env.VITE_API_URL`, read **only** in `frontend/src/api/client.ts`.
+  Dev host/port come from `FRONTEND_HOST` / `FRONTEND_PORT` via `loadEnv` in
+  `vite.config.ts`. Vite only exposes vars prefixed `VITE_` to the browser.
+  Document new vars in `frontend/.env.example`.
 
 ## Backend patterns
 

@@ -17,7 +17,7 @@ import { requireWheel } from '../services/wheelService.js';
  * deleting address an option directly by id.
  *
  * Mounted at /api so paths are:
- *   GET/POST  /api/wheels/:wheelId/options
+ *   POST      /api/wheels/:wheelId/options
  *   PATCH/DEL /api/options/:id
  */
 export const optionsRouter = new Hono();
@@ -31,13 +31,6 @@ function validateColor(value: string | undefined): string | undefined {
   }
   return value;
 }
-
-// List options for a wheel.
-optionsRouter.get('/wheels/:wheelId/options', (c) => {
-  const wheelId = parseId(c.req.param('wheelId'), 'wheel id');
-  requireWheel(wheelId);
-  return ok(c, optionsRepo.listByWheel(wheelId));
-});
 
 // Add an option to a wheel.
 optionsRouter.post('/wheels/:wheelId/options', async (c) => {

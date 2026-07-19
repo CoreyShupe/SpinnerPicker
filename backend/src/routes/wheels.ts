@@ -33,12 +33,6 @@ wheelsRouter.post('/', async (c) => {
   return ok(c, getWheelWithOptions(wheel.id), 201);
 });
 
-// Read one wheel with options.
-wheelsRouter.get('/:id', (c) => {
-  const id = parseId(c.req.param('id'), 'wheel id');
-  return ok(c, getWheelWithOptions(id));
-});
-
 // Update a wheel's name and/or no-repeat window.
 wheelsRouter.patch('/:id', async (c) => {
   const id = parseId(c.req.param('id'), 'wheel id');

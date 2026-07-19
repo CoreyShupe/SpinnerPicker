@@ -33,8 +33,10 @@ run, so you can spin immediately.
 
 ## Configuration
 
-All settings are environment variables with defaults — override by copying
-`.env.example` into `backend/.env` and `frontend/.env`, or by exporting them.
+All settings are environment variables with defaults. Each package reads its own
+`.env` (loaded next to its code — there is no shared root `.env`): override by
+copying `backend/.env.example` → `backend/.env` and `frontend/.env.example` →
+`frontend/.env`, or by exporting the vars in your shell.
 
 | Variable         | Side     | Default                 | Purpose                              |
 | ---------------- | -------- | ----------------------- | ------------------------------------ |
@@ -66,13 +68,11 @@ Base path `/api`. Success responses are `{ "data": ... }`; errors are
 | Method   | Path                          | Description                          |
 | -------- | ----------------------------- | ------------------------------------ |
 | `GET`    | `/health`                     | Liveness check                       |
-| `GET`    | `/api/wheels`                 | List wheels (with options)           |
+| `GET`    | `/api/wheels`                 | List wheels (with options embedded)  |
 | `POST`   | `/api/wheels`                 | Create a wheel                       |
-| `GET`    | `/api/wheels/:id`             | Get a wheel with options             |
 | `PATCH`  | `/api/wheels/:id`             | Update name / no-repeat window       |
 | `DELETE` | `/api/wheels/:id`             | Delete a wheel (cascades)            |
 | `POST`   | `/api/wheels/:id/spin`        | Spin → pick + record history         |
-| `GET`    | `/api/wheels/:id/options`     | List a wheel's options               |
 | `POST`   | `/api/wheels/:id/options`     | Add an option                        |
 | `PATCH`  | `/api/options/:id`            | Edit label / color / weight / order  |
 | `DELETE` | `/api/options/:id`            | Remove an option                     |
@@ -84,7 +84,6 @@ Base path `/api`. Success responses are `{ "data": ... }`; errors are
 
 | Method   | Path                          | Description                          |
 | -------- | ----------------------------- | ------------------------------------ |
-| `GET`    | `/api/wheels/:id/users`       | List the wheel's users               |
 | `POST`   | `/api/wheels/:id/users`       | Add a user (name unique per wheel)   |
 | `DELETE` | `/api/users/:id`              | Remove a user                        |
 | `GET`    | `/api/wheels/:id/stats`       | Full catalog: roster, rounds, totals |
