@@ -9,6 +9,10 @@ A spinner picker wheel that avoids repeating a choice within a configurable
 "no-repeat window". A Hono + SQLite backend owns all data and the selection
 logic; a React + Vite frontend renders and animates the wheel.
 
+Wheels come in two modes via the `trackStats` flag: plain wheels store only a
+pick history; **stats wheels** additionally track a per-wheel roster of users and
+a numeric score per user per round (see "Stats feature" below).
+
 ## Repository layout
 
 ```
@@ -110,14 +114,42 @@ the built output.
 
 ## Data model
 
-- `wheels` (id, name, no_repeat_window, timestamps)
+- `wheels` (id, name, no_repeat_window, **track_stats**, timestamps)
 - `options` (id, wheel_id→wheels, label, color, weight, position, timestamps)
 - `history` (id, wheel_id→wheels, option_id→options **nullable**, option_label
-  snapshot, created_at)
+  snapshot, **stats_committed**, created_at)
+- `users` (id, wheel_id→wheels, name, created_at) — **UNIQUE(wheel_id, name)**
+- `round_stats` (id, history_id→history, user_id→users, value) —
+  **UNIQUE(history_id, user_id)**
 
-Deleting a wheel cascades to its options and history. Deleting an option sets
-its history rows' `option_id` to NULL but keeps the snapshotted `option_label`,
-so history survives option removal.
+Deleting a wheel cascades to its options, history, users, and round_stats.
+Deleting an option sets its history rows' `option_id` to NULL but keeps the
+snapshotted `option_label`, so history survives option removal. Deleting a user
+cascades their round_stats rows.
+
+**Additive schema changes:** `CREATE TABLE IF NOT EXISTS` never alters an
+existing table, so new columns are added idempotently by `runMigrations()` in
+[db/index.ts](backend/src/db/index.ts) via `ensureColumn`. Add one line there per
+new column; add new tables to `schema.sql`.
+
+## Stats feature
+
+- A **round** is a spin (a `history` row) on a stats wheel. Each round holds one
+  numeric `value` per user in `round_stats`. A **missing** `round_stats` row =
+  "no value" and renders blank — this is deliberately distinct from `0`, so
+  clearing a cell **deletes** the row rather than storing `0`.
+- The **current/editable round** is the wheel's latest spin while
+  `stats_committed = 0`. Only the latest round can be edited (enforced in
+  `statsService.requireEditableRound` → 409 otherwise).
+- **Commit** sets `stats_committed = 1` (locks the round into the catalog).
+  **Rollback** clears it back to editable — only allowed on the latest round.
+  Spinning again **auto-commits** the previous round (see `spinWheel`).
+- All stat mutations funnel through `services/statsService.ts` and **return the
+  full rebuilt `StatsCatalog`**, so the client replaces state in one shot instead
+  of refetching. `getCatalog` assembles roster + rounds (newest first, with
+  `isLatest`) + all-time `totals` per user.
+- Stats endpoints require `trackStats` — guard with
+  `requireStatsWheel(wheelId)` (422 on plain wheels).
 
 ## Conventions checklist for a new feature
 

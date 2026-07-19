@@ -11,9 +11,10 @@ interface WheelSidebarProps {
   selectedId: number | null;
   disabled: boolean;
   onSelect: (id: number) => void;
-  onCreate: (name: string) => void;
+  onCreate: (name: string, trackStats: boolean) => void;
   onRename: (id: number, name: string) => void;
   onWindowChange: (id: number, window: number) => void;
+  onToggleStats: (id: number, trackStats: boolean) => void;
   onDelete: (id: number) => void;
 }
 
@@ -25,16 +26,19 @@ export function WheelSidebar({
   onCreate,
   onRename,
   onWindowChange,
+  onToggleStats,
   onDelete,
 }: WheelSidebarProps) {
   const [newName, setNewName] = useState('');
+  const [newTrackStats, setNewTrackStats] = useState(false);
   const selected = wheels.find((w) => w.id === selectedId) ?? null;
 
   const create = () => {
     const name = newName.trim();
     if (!name) return;
-    onCreate(name);
+    onCreate(name, newTrackStats);
     setNewName('');
+    setNewTrackStats(false);
   };
 
   return (
@@ -76,6 +80,14 @@ export function WheelSidebar({
             +
           </button>
         </div>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={newTrackStats}
+            onChange={(e) => setNewTrackStats(e.target.checked)}
+          />
+          <span>Track per-user stats</span>
+        </label>
       </div>
 
       {selected && (
@@ -115,6 +127,16 @@ export function WheelSidebar({
               Avoid repeating the last {selected.noRepeatWindow} pick
               {selected.noRepeatWindow === 1 ? '' : 's'}.
             </small>
+          </label>
+
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              checked={selected.trackStats}
+              disabled={disabled}
+              onChange={(e) => onToggleStats(selected.id, e.target.checked)}
+            />
+            <span>Track per-user stats</span>
           </label>
 
           <button

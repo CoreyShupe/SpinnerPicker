@@ -5,6 +5,12 @@ window**. Spin for a weighted-random pick that skips whatever came up in the las
 _N_ spins, manage as many wheels as you like, edit options live, and review or
 prune your pick history.
 
+Wheels can optionally **track per-user stats**: keep a per-wheel roster, fill in
+a score for each user on the current round, commit it to a catalog (or auto-commit
+on the next spin), roll back the latest round to fix it, and read all-time totals.
+A fresh install seeds a plain "Lunch Roulette" wheel and a stats-enabled
+"Game Night" wheel so you can see both modes immediately.
+
 - **Backend** — TypeScript + [Hono](https://hono.dev), data in a local SQLite
   file (via `better-sqlite3`). No ORM, no extra framework.
 - **Frontend** — React + Vite + framer-motion. Animated SVG wheel, dark UI.
@@ -73,6 +79,20 @@ Base path `/api`. Success responses are `{ "data": ... }`; errors are
 | `GET`    | `/api/wheels/:id/history`     | List pick history (`?limit=`)        |
 | `DELETE` | `/api/wheels/:id/history`     | Clear a wheel's history              |
 | `DELETE` | `/api/history/:id`            | Delete one history entry             |
+
+### Stats (only on wheels with `trackStats: true`)
+
+| Method   | Path                          | Description                          |
+| -------- | ----------------------------- | ------------------------------------ |
+| `GET`    | `/api/wheels/:id/users`       | List the wheel's users               |
+| `POST`   | `/api/wheels/:id/users`       | Add a user (name unique per wheel)   |
+| `DELETE` | `/api/users/:id`              | Remove a user                        |
+| `GET`    | `/api/wheels/:id/stats`       | Full catalog: roster, rounds, totals |
+| `PUT`    | `/api/rounds/:historyId/stats`| Set/clear a user's value (latest round; `value: null` clears) |
+| `POST`   | `/api/rounds/:historyId/commit`   | Commit the latest round          |
+| `POST`   | `/api/rounds/:historyId/rollback` | Reopen the latest round to edit  |
+
+A wheel's stats mode is toggled with `trackStats` on `POST`/`PATCH /api/wheels`.
 
 ## Project layout & conventions
 
